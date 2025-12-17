@@ -2,3 +2,4 @@ DesafioTecnico.pdf
 .env
 data/
 exports/
+__pycache__/
