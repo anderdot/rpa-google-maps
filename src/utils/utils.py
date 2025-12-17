@@ -1,6 +1,9 @@
 import json
+import logging
 from openpyxl import Workbook
 from openpyxl.utils import get_column_letter
+
+log = logging.getLogger(__name__)
 
 def normalizar_dados(dados, tipo_localizado):
     dados_normalizados = []
@@ -20,21 +23,21 @@ def normalizar_dados(dados, tipo_localizado):
         })
     return dados_normalizados
 
-def gerar_json(dados, caminho_arquivo):
-    with open(caminho_arquivo, "w", encoding="utf-8") as arquivo:
+def gerar_json(dados, caminho_json):
+    with open(caminho_json, "w", encoding="utf-8") as arquivo:
         json.dump(dados, arquivo, indent=2, ensure_ascii=False)
 
-def carregar_json(caminho_arquivo):
-    with open(caminho_arquivo, "r", encoding="utf-8") as arquivo:
+def carregar_json(caminho_json):
+    with open(caminho_json, "r", encoding="utf-8") as arquivo:
         return json.load(arquivo)
 
-def gerar_excel(dados, caminho_arquivo):
+def gerar_excel(dados, caminho_excel):
     workbook = Workbook()
     sheet = workbook.active
     sheet.title = "estabelecimentos"
 
     if not dados:
-        workbook.save(caminho_arquivo)
+        workbook.save(caminho_excel)
         return
 
     colunas = list(dados[0].keys())
@@ -51,9 +54,14 @@ def gerar_excel(dados, caminho_arquivo):
         )
         sheet.column_dimensions[letra].width = tamanho_max + 2
 
-    workbook.save(caminho_arquivo)
+    workbook.save(caminho_excel)
 
 def exportar_dados(dados, caminhos_arquivos):
     gerar_json(dados, caminhos_arquivos["json"])
+    log.debug(f"Json exportado com {len(dados)} registros: {caminhos_arquivos['json']}")
+
     dados_json = carregar_json(caminhos_arquivos["json"])
+    log.debug(f"Json carregado com {len(dados_json)} registros para exportação Excel.")
+
     gerar_excel(dados_json, caminhos_arquivos["excel"])
+    log.debug(f"Excel exportado com {len(dados_json)} registros: {caminhos_arquivos['excel']}")

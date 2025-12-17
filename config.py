@@ -24,6 +24,11 @@ TIPOS = {
 BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = BASE_DIR / "data"
 EXPORTS_DIR = BASE_DIR / "exports"
+LOGS_DIR = BASE_DIR / "logs"
 
 DATA_DIR.mkdir(exist_ok=True)
 EXPORTS_DIR.mkdir(exist_ok=True)
+LOGS_DIR.mkdir(exist_ok=True)
+
+# Configurações de logging
+LOG_LEVEL = "DEBUG"
