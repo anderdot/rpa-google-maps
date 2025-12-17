@@ -1,6 +1,6 @@
 import time
 import requests
-from src.utils import normalizar_dados, gerar_json
+from src.utils import normalizar_dados, exportar_dados
 from config import (
     API_KEY,
     GOOGLE_MAPS_URL,
@@ -40,4 +40,4 @@ def coletar_dados():
             time.sleep(2)
             params["pagetoken"] = resposta["next_page_token"]
 
-    gerar_json(dados)
+    exportar_dados(dados)
