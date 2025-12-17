@@ -1,14 +1,6 @@
 import json
 from openpyxl import Workbook
 from openpyxl.utils import get_column_letter
-from config import (
-    LATITUDE,
-    LONGITUDE,
-    RAIO,
-    DATA_DIR,
-    EXPORTS_DIR,
-    TIMESTAMP
-)
 
 def normalizar_dados(dados, tipo_localizado):
     dados_normalizados = []
@@ -28,31 +20,21 @@ def normalizar_dados(dados, tipo_localizado):
         })
     return dados_normalizados
 
-def criar_nome_arquivo(extensao):
-    lat = str(LATITUDE).replace(".", "-")
-    lon = str(LONGITUDE).replace(".", "-")
-    rai = str(RAIO)
-    nome_arquivo = f"estabelecimentos_lat{lat}_lon{lon}_rai_{rai}_{TIMESTAMP}.{extensao}"
-
-    return nome_arquivo
-
-def gerar_json(dados):
-    nome_arquivo = criar_nome_arquivo("json")
-    with open(DATA_DIR / nome_arquivo, "w", encoding="utf-8") as arquivo:
+def gerar_json(dados, caminho_arquivo):
+    with open(caminho_arquivo, "w", encoding="utf-8") as arquivo:
         json.dump(dados, arquivo, indent=2, ensure_ascii=False)
 
-def carregar_json(caminho):
-    with open(caminho, "r", encoding="utf-8") as arquivo:
+def carregar_json(caminho_arquivo):
+    with open(caminho_arquivo, "r", encoding="utf-8") as arquivo:
         return json.load(arquivo)
 
-def gerar_excel(dados):
-    nome_arquivo = criar_nome_arquivo("xlsx")
+def gerar_excel(dados, caminho_arquivo):
     workbook = Workbook()
     sheet = workbook.active
     sheet.title = "estabelecimentos"
 
     if not dados:
-        workbook.save(EXPORTS_DIR / nome_arquivo)
+        workbook.save(caminho_arquivo)
         return
 
     colunas = list(dados[0].keys())
@@ -69,9 +51,9 @@ def gerar_excel(dados):
         )
         sheet.column_dimensions[letra].width = tamanho_max + 2
 
-    workbook.save(EXPORTS_DIR / nome_arquivo)
+    workbook.save(caminho_arquivo)
 
-def exportar_dados(dados):
-    gerar_json(dados)
-    dados_json = carregar_json(DATA_DIR / criar_nome_arquivo("json"))
-    gerar_excel(dados_json)
+def exportar_dados(dados, caminhos_arquivos):
+    gerar_json(dados, caminhos_arquivos["json"])
+    dados_json = carregar_json(caminhos_arquivos["json"])
+    gerar_excel(dados_json, caminhos_arquivos["excel"])

@@ -14,7 +14,7 @@ def requisitar_api(params):
     resposta = requests.get(GOOGLE_MAPS_URL, params=params)
     return resposta.json()
 
-def coletar_dados():
+def coletar_dados(caminhos_arquivos):
     dados = []
 
     for tipo_api, tipo_localizado in TIPOS.items():
@@ -40,4 +40,4 @@ def coletar_dados():
             time.sleep(2)
             params["pagetoken"] = resposta["next_page_token"]
 
-    exportar_dados(dados)
+    exportar_dados(dados, caminhos_arquivos)

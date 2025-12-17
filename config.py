@@ -1,6 +1,5 @@
 import os
 from pathlib import Path
-from datetime import datetime
 from dotenv import load_dotenv
 
 # Carrega a chave da API do arquivo .env
@@ -28,6 +27,3 @@ EXPORTS_DIR = BASE_DIR / "exports"
 
 DATA_DIR.mkdir(exist_ok=True)
 EXPORTS_DIR.mkdir(exist_ok=True)
-
-# Padrões de arquivos e logs
-TIMESTAMP = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
