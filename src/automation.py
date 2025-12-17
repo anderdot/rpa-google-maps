@@ -1,6 +1,6 @@
+import time
 import requests
-import json
-from src.utils import normalizar_dados
+from src.utils import normalizar_dados, gerar_json
 from config import (
     API_KEY,
     GOOGLE_MAPS_URL,
@@ -26,8 +26,18 @@ def coletar_dados():
             "language": "pt-BR"
         }
 
-        resposta = requisitar_api(params)
-        resposta_normalizada = normalizar_dados(resposta.get("results", []), tipo_localizado)
-        dados.extend(resposta_normalizada)
+        while True:
+            resposta = requisitar_api(params)
+            resultado = resposta.get("results", [])
+            resposta_normalizada = normalizar_dados(resultado, tipo_localizado)
+            dados.extend(resposta_normalizada)
 
-    print(json.dumps(dados, indent=2, ensure_ascii=False))
+            # Verifica se há uma próxima página de resultados
+            if "next_page_token" not in resposta:
+                break
+
+            # Aguarda alguns segundos antes de fazer a próxima requisição (como exigido pela API)
+            time.sleep(2)
+            params["pagetoken"] = resposta["next_page_token"]
+
+    gerar_json(dados)
