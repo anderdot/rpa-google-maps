@@ -1,4 +1,10 @@
+import os
 from pathlib import Path
+from dotenv import load_dotenv
+
+# Carrega a chave da API do arquivo .env
+load_dotenv()
+API_KEY = os.getenv("GOOGLE_API_KEY")
 
 # Configurações do Google Maps API
 GOOGLE_MAPS_URL = "https://maps.googleapis.com/maps/api/place/nearbysearch/json"
