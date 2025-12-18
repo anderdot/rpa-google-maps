@@ -13,9 +13,9 @@ def main():
 
         coletar_dados(caminhos_arquivos)
 
-        log.info("Automação concluída com sucesso")
+        log.info("Automação concluída com sucesso.")
     except Exception as erro:
-        log.critical(f"Automação encerrada devido a um erro crítico: {erro}")
+        log.critical(f"Automação encerrada devido a um erro crítico: {erro}.",exc_info=True)
 
 if __name__ == "__main__":
     main()

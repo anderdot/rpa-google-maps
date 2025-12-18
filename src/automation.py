@@ -13,98 +13,108 @@ from config import (
 
 log = logging.getLogger(__name__)
 
+def validar_raio():
+    if RAIO <= 0 or RAIO > 50000:
+        raise ValueError(
+            f"Raio inválido: {RAIO}. Deve estar entre 1 e 50000 metros."
+        )
+
+def criar_params(tipo_api, pagetoken=None):
+    params = {
+        "key": API_KEY,
+        "location": f"{LATITUDE},{LONGITUDE}",
+        "radius": RAIO,
+        "type": tipo_api,
+        "language": "pt-BR"
+    }
+
+    if pagetoken:
+        params["pagetoken"] = pagetoken
+
+    return params
+
 def requisitar_api(params):
     try:
-        log.debug(f"Requisitando dados da API com parâmetros: {params}")
-        resposta = requests.get(GOOGLE_MAPS_URL, params=params, timeout=10)
+        log.debug(f"Requisitando API com params: {params}.")
 
-        if resposta.status_code != 200:
-            log.error(f"Erro na requisição: {resposta.status_code} - {resposta.text}.")
-            return {}
+        resposta = requests.get(
+            GOOGLE_MAPS_URL,
+            params=params,
+            timeout=10
+        )
 
-        dados = resposta.json()
-
-        if dados.get("status") not in ("OK", "ZERO_RESULTS"):
-            log.error(f"Erro na resposta da API: {dados.get('status')} - {dados.get('error_message')}.")
-            return {}
-
-        log.debug(f"Resposta da API recebida com sucesso!")
-        return dados
-
-    except requests.exceptions.Timeout:
-        log.error("Timeout ao conectar na API do Google Maps")
-        raise
-
-    except requests.exceptions.ConnectionError:
-        log.error("Falha de conexão com a API do Google Maps")
-        raise
-
-    except requests.exceptions.HTTPError as erro:
-        log.error(f"Erro HTTP {resposta.status_code}: {resposta.text}")
-        raise
+        resposta.raise_for_status()
+        return resposta.json()
 
     except requests.exceptions.RequestException as erro:
-        log.error(f"Erro inesperado na requisição: {erro}")
+        log.error(f"Erro na requisição HTTP: {erro}.")
         raise
 
-def coletar_dados(caminhos_arquivos):
-    log.info("Iniciando coleta de dados")
+def validar_resposta_api(dados):
+    status = dados.get("status")
+
+    if status in ("OK", "ZERO_RESULTS"):
+        return
+
+    mensagem = dados.get("error_message", "Sem mensagem de erro")
+    raise RuntimeError(f"Erro da API Google: {status} - {mensagem}")
+
+def paginar_resultados(tipo_api, tipo_legivel):
     dados = []
-    estabelecimentos_total = 0
+    total = 0
+    pagetoken = None
+    pagina = 1
 
-    for tipo_api, tipo_localizado in TIPOS.items():
-        log.info(f"Coletando dados para o tipo: {tipo_localizado}.")
+    while True:
+        log.debug(f"Página {pagina} - Tipo {tipo_legivel}")
 
-        params = {
-            "key": API_KEY,
-            "location": f"{LATITUDE},{LONGITUDE}",
-            "radius": RAIO,
-            "type": tipo_api,
-            "language": "pt-BR"
-        }
+        params = criar_params(tipo_api, pagetoken)
+        resposta = requisitar_api(params)
+        validar_resposta_api(resposta)
 
-        if RAIO <= 0 or RAIO > 50000:
-            log.warning(f"Raio inválido: {RAIO}. Deve estar entre 1 e 50000 metros.")
-            continue
+        resultados = resposta.get("results", [])
+        total += len(resultados)
 
-        pagina = 1
-        estabelecimentos_tipo = 0
+        dados.extend(normalizar_dados(resultados, tipo_legivel))
 
-        while True:
-            try:
-                log.debug(f"Requisitando página {pagina} para o tipo {tipo_localizado}.")
+        pagetoken = resposta.get("next_page_token")
+        if not pagetoken:
+            break
 
-                resposta = requisitar_api(params)
-                resultado = resposta.get("results", [])
+        time.sleep(2)
+        pagina += 1
 
-                qtd_estabelecimento = len(resultado)
-                estabelecimentos_tipo += qtd_estabelecimento
+    log.info(f"{tipo_legivel}: {total} registros coletados.")
+    return dados, total
 
-                if estabelecimentos_tipo == 0:
-                    log.warning(f"Nenhum registro encontrado para o tipo {tipo_localizado}.")
-                else:
-                    log.debug(f"Recebidos {qtd_estabelecimento} estabelecimentos.")
-                    estabelecimentos_total += qtd_estabelecimento
+def coletar_dados(caminhos_arquivos):
+    try:
+        validar_raio()
+    except ValueError as erro:
+        log.critical(str(erro))
+        return
 
-                resposta_normalizada = normalizar_dados(resultado, tipo_localizado)
-                dados.extend(resposta_normalizada)
+    log.info("Iniciando coleta de dados.")
+    dados = []
+    total_geral = 0
 
-                # Verifica se há uma próxima página de resultados
-                if "next_page_token" not in resposta:
-                    log.debug(f"Todas as páginas coletadas para o tipo {tipo_localizado}.")
-                    break
+    for tipo_api, tipo_legivel in TIPOS.items():
+        try:
+            dados_tipo, total_tipo = paginar_resultados(
+                tipo_api,
+                tipo_legivel
+            )
+            dados.extend(dados_tipo)
+            total_geral += total_tipo
 
-                # Aguarda alguns segundos antes de fazer a próxima requisição (como exigido pela API)
-                time.sleep(2)
-                params["pagetoken"] = resposta["next_page_token"]
-                pagina += 1
-            except Exception as erro:
-                log.error(f"Erro ao coletar dados para o tipo {tipo_localizado}: {erro}")
-                break
+        except Exception as erro:
+            log.error(
+                f"Erro ao coletar dados de {tipo_legivel}: {erro}.",
+                exc_info=True
+            )
 
-        log.info(f"Total de estabelecimentos coletados para o tipo {tipo_localizado}: {estabelecimentos_tipo}.")
-    log.info(f"Coleta de dados concluída. Total de estabelecimentos coletados: {estabelecimentos_total}.")
+    log.info(f"Coleta finalizada. Total geral: {total_geral}.")
 
     log.info("Exportando dados.")
     exportar_dados(dados, caminhos_arquivos)
-    log.info("Dados exportados com sucesso.")
+    log.info("Exportação concluída com sucesso.")
