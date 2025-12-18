@@ -4,18 +4,23 @@ from src.utils.names import gerar_caminhos_arquivos
 from src.utils.logger import configurar_logger
 
 def main():
+    """
+    Função de orquestração principal para coletar dados da API do Google Maps
+    e exportá-los para arquivos.
+    """
     caminhos_arquivos = gerar_caminhos_arquivos()
 
     try:
         configurar_logger(caminhos_arquivos["log"])
         log = logging.getLogger(__name__)
-        log.info("Iniciando automação")
+        log.info("Iniciando automação.")
 
         coletar_dados(caminhos_arquivos)
 
         log.info("Automação concluída com sucesso.")
     except Exception as erro:
         log.critical(f"Automação encerrada devido a um erro crítico: {erro}.",exc_info=True)
+
 
 if __name__ == "__main__":
     main()

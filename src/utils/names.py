@@ -9,6 +9,10 @@ from config import (
 )
 
 def gerar_caminhos_arquivos():
+    """
+    Gera nomes de arquivos únicos para JSON, Excel e log com base em
+    latitude, longitude, raio e timestamp atual.
+    """
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
     lat = str(LATITUDE).replace(".", "-")
