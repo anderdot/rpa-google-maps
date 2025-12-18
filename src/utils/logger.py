@@ -1,4 +1,3 @@
-# src/utils/logger.py
 import logging
 from config import LOG_LEVEL
 
@@ -24,3 +23,6 @@ def configurar_logger(caminho_log):
 
     logger.addHandler(file_handler)
     logger.addHandler(console_handler)
+
+    logging.getLogger("urllib3").setLevel(logging.WARNING)
+    logging.getLogger("urllib3.connectionpool").setLevel(logging.WARNING)

@@ -6,13 +6,16 @@ from src.utils.logger import configurar_logger
 def main():
     caminhos_arquivos = gerar_caminhos_arquivos()
 
-    configurar_logger(caminhos_arquivos["log"])
-    log = logging.getLogger(__name__)
-    log.info("Iniciando automação")
+    try:
+        configurar_logger(caminhos_arquivos["log"])
+        log = logging.getLogger(__name__)
+        log.info("Iniciando automação")
 
-    coletar_dados(caminhos_arquivos)
+        coletar_dados(caminhos_arquivos)
 
-    log.info("Automação concluída com sucesso")
+        log.info("Automação concluída com sucesso")
+    except Exception as erro:
+        log.critical(f"Automação encerrada devido a um erro crítico: {erro}")
 
 if __name__ == "__main__":
     main()

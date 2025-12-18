@@ -8,8 +8,8 @@ API_KEY = os.getenv("GOOGLE_API_KEY")
 
 # Configurações do Google Maps API
 GOOGLE_MAPS_URL = "https://maps.googleapis.com/maps/api/place/nearbysearch/json"
-LATITUDE = -23.5505
-LONGITUDE = -46.633306
+LATITUDE = -23.545669716920155
+LONGITUDE = -46.63403201000511
 RAIO = 1000
 
 # Mapeamento dos tipos do Google Maps para nomes em português

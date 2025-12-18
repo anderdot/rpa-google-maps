@@ -14,21 +14,38 @@ from config import (
 log = logging.getLogger(__name__)
 
 def requisitar_api(params):
-    log.debug(f"Requisitando dados da API com parâmetros: {params}")
-    resposta = requests.get(GOOGLE_MAPS_URL, params=params, timeout=10)
+    try:
+        log.debug(f"Requisitando dados da API com parâmetros: {params}")
+        resposta = requests.get(GOOGLE_MAPS_URL, params=params, timeout=10)
 
-    if resposta.status_code != 200:
-        log.error(f"Erro na requisição: {resposta.status_code} - {resposta.text}.")
-        return {}
+        if resposta.status_code != 200:
+            log.error(f"Erro na requisição: {resposta.status_code} - {resposta.text}.")
+            return {}
 
-    dados = resposta.json()
+        dados = resposta.json()
 
-    if dados.get("status") not in ("OK", "ZERO_RESULTS"):
-        log.error(f"Erro na resposta da API: {dados.get('status')} - {dados.get('error_message')}.")
-        return {}
+        if dados.get("status") not in ("OK", "ZERO_RESULTS"):
+            log.error(f"Erro na resposta da API: {dados.get('status')} - {dados.get('error_message')}.")
+            return {}
 
-    log.debug(f"Resposta da API recebida com sucesso!")
-    return dados
+        log.debug(f"Resposta da API recebida com sucesso!")
+        return dados
+
+    except requests.exceptions.Timeout:
+        log.error("Timeout ao conectar na API do Google Maps")
+        raise
+
+    except requests.exceptions.ConnectionError:
+        log.error("Falha de conexão com a API do Google Maps")
+        raise
+
+    except requests.exceptions.HTTPError as erro:
+        log.error(f"Erro HTTP {resposta.status_code}: {resposta.text}")
+        raise
+
+    except requests.exceptions.RequestException as erro:
+        log.error(f"Erro inesperado na requisição: {erro}")
+        raise
 
 def coletar_dados(caminhos_arquivos):
     log.info("Iniciando coleta de dados")
@@ -54,32 +71,36 @@ def coletar_dados(caminhos_arquivos):
         estabelecimentos_tipo = 0
 
         while True:
-            log.debug(f"Requisitando página {pagina} para o tipo {tipo_localizado}.")
+            try:
+                log.debug(f"Requisitando página {pagina} para o tipo {tipo_localizado}.")
 
-            resposta = requisitar_api(params)
-            resultado = resposta.get("results", [])
+                resposta = requisitar_api(params)
+                resultado = resposta.get("results", [])
 
-            qtd_estabelecimento = len(resultado)
-            estabelecimentos_tipo += qtd_estabelecimento
+                qtd_estabelecimento = len(resultado)
+                estabelecimentos_tipo += qtd_estabelecimento
 
-            if estabelecimentos_tipo == 0:
-                log.warning(f"Nenhum registro encontrado para o tipo {tipo_localizado}.")
-            else:
-                log.debug(f"Recebidos {qtd_estabelecimento} estabelecimentos.")
-                estabelecimentos_total += qtd_estabelecimento
+                if estabelecimentos_tipo == 0:
+                    log.warning(f"Nenhum registro encontrado para o tipo {tipo_localizado}.")
+                else:
+                    log.debug(f"Recebidos {qtd_estabelecimento} estabelecimentos.")
+                    estabelecimentos_total += qtd_estabelecimento
 
-            resposta_normalizada = normalizar_dados(resultado, tipo_localizado)
-            dados.extend(resposta_normalizada)
+                resposta_normalizada = normalizar_dados(resultado, tipo_localizado)
+                dados.extend(resposta_normalizada)
 
-            # Verifica se há uma próxima página de resultados
-            if "next_page_token" not in resposta:
-                log.debug(f"Todas as páginas coletadas para o tipo {tipo_localizado}.")
+                # Verifica se há uma próxima página de resultados
+                if "next_page_token" not in resposta:
+                    log.debug(f"Todas as páginas coletadas para o tipo {tipo_localizado}.")
+                    break
+
+                # Aguarda alguns segundos antes de fazer a próxima requisição (como exigido pela API)
+                time.sleep(2)
+                params["pagetoken"] = resposta["next_page_token"]
+                pagina += 1
+            except Exception as erro:
+                log.error(f"Erro ao coletar dados para o tipo {tipo_localizado}: {erro}")
                 break
-
-            # Aguarda alguns segundos antes de fazer a próxima requisição (como exigido pela API)
-            time.sleep(2)
-            params["pagetoken"] = resposta["next_page_token"]
-            pagina += 1
 
         log.info(f"Total de estabelecimentos coletados para o tipo {tipo_localizado}: {estabelecimentos_tipo}.")
     log.info(f"Coleta de dados concluída. Total de estabelecimentos coletados: {estabelecimentos_total}.")

@@ -2,4 +2,6 @@ DesafioTecnico.pdf
 .env
 data/
 exports/
+logs/
 __pycache__/
+.vscode/
